@@ -21,3 +21,41 @@
 					# self.api('variants/' + to_str(id_variant) + '.json',data_put,'Put')
 
 		return True
+		
+				order_items = list()
+		for row in convert['items']:
+			product_id = None
+			variant_id = None
+			if row['product']['id'] or row['product']['code']:
+				product = self.select_map(self._migration_id, self.TYPE_PRODUCT, id_src=row['product']['id'],code_src=row['product']['code'])
+				if product:
+					product_id = product['id_desc']
+
+					mark_order = self.select_map_mark(self._migration_id, 'mark_wix', id_src=product_id)
+					if mark_order:
+						for tmp in mark_order:
+							mark_check = True
+							mark_option_text = to_str(tmp['code_src'])
+							for option_tmp in row['options']:
+								if to_str(option_tmp['option_value_name']) not in mark_option_text:
+									mark_check = False
+							if mark_check:
+								variant_id = tmp['id_desc']
+								break
+
+					if not variant_id:
+						value = json_decode(product['value'])
+						if value and isinstance(value, dict) and value.get('variant_id'):
+							variant_id = value['variant_id']
+
+			if product_id and not variant_id:
+				product_info = self.api('products/' + to_str(product_id) + '.json')
+				if product_info:
+					product_info = json_decode(product_info)
+					if isinstance(product_info, dict) and product_info.get('product'):
+						variant_id = product_info['product']['variants'][0]['id']
+						if row['product'].get('sku'):
+							for variant in product_info['product']['variants']:
+								if row['product'].get('sku') == variant['sku']:
+									variant_id = variant['id']
+									break
