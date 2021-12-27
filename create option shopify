@@ -1,0 +1,14 @@
+		# id_target = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'])
+		#
+		# products = self.api('products/' + to_str(id_target) + '.json')
+		#
+		# products_page = json_decode(products)
+		#
+		# # self.log(products_page,'products_page')
+		# if products_page.get('product'):
+		# 	for variant in products_page['product']['variants']:
+		# 		code_text = variant['title']
+		# 		self.insert_map('mark_wix', variant['product_id'], variant['id'], code_text, None)
+		#
+		# 		# return True
+		# return True
