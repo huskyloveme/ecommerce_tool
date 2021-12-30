@@ -31,7 +31,7 @@
 				if product:
 					product_id = product['id_desc']
 
-					mark_order = self.select_map_mark(self._migration_id, 'mark_wix', id_src=product_id)
+					mark_order = self.select_map(self._migration_id, 'mark_wix', id_src=product_id)
 					if mark_order:
 						for tmp in mark_order:
 							mark_check = True
