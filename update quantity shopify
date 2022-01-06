@@ -1,0 +1,23 @@
+			qty = convert['qty']
+
+			id_desc = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'])
+			location = self.api('locations.json')
+			location = json_decode(location)
+			location_id = location['locations'][0]['id']
+			if id_desc and location_id:
+				get_product = self.api('products/' + to_str(id_desc) + '.json')
+				if not get_product:
+					return response_error(self.console_error("Could not get data from Shopify"))
+				product_page = json_decode(get_product)
+				if not product_page:
+					self.log("Can't get collects data, id_src = " + to_str(id_desc), 'get_main')
+					return response_error()
+				product_data = product_page.get('product')
+
+				for vari in product_data['variants']:
+					post_data = {
+						"inventory_item_id": vari['inventory_item_id'],
+						"location_id": location_id,
+						"available": qty
+					}
+					update_qty = self.api('inventory_levels/set.json', post_data, 'POST')
