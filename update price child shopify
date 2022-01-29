@@ -59,3 +59,43 @@
 								if row['product'].get('sku') == variant['sku']:
 									variant_id = variant['id']
 									break
+									
+									
+									
+									
+#new update					
+									
+									
+		id_target = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'])
+
+		products = self.api('products/' + to_str(id_target) + '.json')
+		if not products:
+			return response_error(self.console_error("Could not get data from Shopify"))
+		products_page = json_decode(products)
+
+		if len(convert['children']) > 0:
+			for variant in products_page['product']['variants']:
+				id_variant = variant['id']
+				self.log(id_variant, 'id_variant')
+				data_map = self.select_map(self._migration_id, 'product_child', id_desc=id_variant)
+				self.log(data_map,'data_map')
+				id_child = data_map['id_src']
+				for child in convert['children']:
+					if to_str(child['id']) == to_str(id_child):
+						data_put = {
+							"variant": {
+								"price": child['price'],
+								"id": id_variant,
+							}
+						}
+						self.api('variants/' + to_str(id_variant) + '.json', data_put, 'Put')
+		else:
+			for variant in products_page['product']['variants']:
+				data_put = {
+					"variant": {
+						"price": convert['price'],
+						"id": variant['id'],
+					}
+				}
+				# self.log(data_put, 'data_put')
+				self.api('variants/' + to_str(variant['id']) + '.json', data_put, 'Put')
