@@ -1,0 +1,158 @@
+product_id = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'])
+if product_id:
+	url_query = self.get_connector_url('query')
+	url_image = self.get_connector_url('image')
+	all_query = list()
+	all_attribute = self.select_all_attribute_map()
+	product_eav_attribute_data = dict()
+	attribute_id_media = None
+	for attribute_row in all_attribute:
+		attribute = json_decode(attribute_row['value'])
+		if not attribute:
+			value_att = to_str(attribute_row['value']).replace('\\', '\\\\')
+			list_re = re.findall('".*?".*?"', to_str(value_att))
+			for reg in list_re:
+				if to_str(reg).find(':') > 0 or to_str(reg).find(',') > 0:
+					pass
+				else:
+					value_att = to_str(value_att).replace(reg[1:-1], reg[1:-1].replace('"', '\\"'))
+			attribute = json_decode(value_att)
+		if attribute['backend_type'] != 'static':
+			if not attribute['attribute_code'] in product_eav_attribute_data:
+				product_eav_attribute_data[attribute['attribute_code']] = dict()
+			product_eav_attribute_data[attribute['attribute_code']]['attribute_id'] = attribute['attribute_id']
+			product_eav_attribute_data[attribute['attribute_code']]['backend_type'] = attribute['backend_type']
+			product_eav_attribute_data[attribute['attribute_code']]['frontend_input'] = attribute['frontend_input']
+		if attribute['attribute_code'] == 'media_gallery':
+			attribute_id_media = attribute['attribute_id']
+	image_name = None
+	if 'images' in convert:
+		for item in convert['images']:
+			if item['url'] or item['path']:
+				item_image_name = None
+				image_process = self.process_image_before_import(item['url'], item['path'])
+				if (not ('ignore_image' in self._notice['config'])) or (not self._notice['config']['ignore_image']):
+					item_image_name = self.uploadImageConnector(image_process, self.add_prefix_path(self.make_magento_image_path(image_process['path']) + os.path.basename(image_process['path']), self._notice['target']['config']['image_product']))
+					if item_image_name:
+						item_image_name = self.remove_prefix_path(item_image_name, self._notice['target']['config']['image_product'])
+				else:
+					item_image_name = item['path']
+				if item_image_name:
+					if convert['thumb_image']['url']:
+						main_process = self.process_image_before_import(convert['thumb_image']['url'],convert['thumb_image']['path'])
+						if main_process['url'] == image_process['url']:
+							image_name = item_image_name
+					check_img = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+						'type': 'select',
+						'query': f"SElECT * FROM _DBPRF_catalog_product_entity_media_gallery WHERE value LIKE '{item_image_name}' and attribute_id = {attribute_id_media}"
+					})})
+					if check_img['result'] == 'success' and check_img['data']:
+						continue
+					catalog_product_entity_media_gallery_data = {
+						'attribute_id': attribute_id_media,
+						'value': item_image_name,
+						'media_type': 'image',
+						'disabled': 0,
+					}
+					value_id = self.import_data_connector(self.create_insert_query_connector('catalog_product_entity_media_gallery', catalog_product_entity_media_gallery_data))
+					if value_id:
+						check_img_val = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+							'type': 'select',
+							'query': f"SElECT * FROM _DBPRF_catalog_product_entity_media_gallery_value_to_entity WHERE value_id = {value_id} and entity_id = {product_id}"
+						})})
+						if check_img_val['result'] == 'success' and check_img_val['data']:
+							continue
+						catalog_product_entity_media_gallery_value_to_entity_data = {
+							'value_id': value_id,
+							'entity_id': product_id,
+						}
+						self.import_data_connector(self.create_insert_query_connector('catalog_product_entity_media_gallery_value_to_entity', catalog_product_entity_media_gallery_value_to_entity_data))
+						check_img_vall = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+							'type': 'select',
+							'query': f"SElECT * FROM _DBPRF_catalog_product_entity_media_gallery_value WHERE value_id = {value_id} and entity_id = {product_id}"
+						})})
+						if check_img_vall['result'] == 'success' and check_img_vall['data']:
+							continue
+						catalog_product_entity_media_gallery_value_data = {
+							'value_id': value_id,
+							'store_id': 0,
+							'entity_id': product_id,
+							'label': item.get('label', ''),
+							'position': item.get('position', 1),
+							'disabled': 0,
+						}
+						self.import_data_connector(self.create_insert_query_connector('catalog_product_entity_media_gallery_value', catalog_product_entity_media_gallery_value_data))
+	if (not image_name) and convert['thumb_image']['url']:
+		if not self._notice['config'].get('ignore_image'):
+			image_process = self.process_image_before_import(convert['thumb_image']['url'], convert['thumb_image']['path'])
+			image_name = self.uploadImageConnector(image_process, self.add_prefix_path(self.make_magento_image_path(image_process['path']) + os.path.basename(image_process['path']), self._notice['target']['config']['image_product']))
+			if image_name:
+				image_name = self.remove_prefix_path(image_name, self._notice['target']['config']['image_product'])
+		else:
+			image_name = convert['thumb_image']['path']
+
+		if image_name:
+			check_img_val = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+				'type': 'select',
+				'query': f"SElECT * FROM _DBPRF_catalog_product_entity_media_gallery WHERE value LIKE '{image_name}' and attribute_id = {attribute_id_media}"
+			})})
+			if check_img_val['result'] == 'success' and not check_img_val['data']:
+				catalog_product_entity_media_gallery_data = {
+					'attribute_id': attribute_id_media,
+					'value': image_name,
+					'media_type': 'image',
+					'disabled': 0,
+				}
+
+				value_id = self.import_product_data_connector(self.create_insert_query_connector('catalog_product_entity_media_gallery', catalog_product_entity_media_gallery_data))
+				if value_id:
+					check_img_vall = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+						'type': 'select',
+						'query': f"SElECT * FROM _DBPRF_catalog_product_entity_media_gallery_value_to_entity WHERE value_id = {value_id} and entity_id = {product_id}"
+					})})
+					if check_img_vall['result'] == 'success' and not check_img_vall['data']:
+						catalog_product_entity_media_gallery_value_to_entity_data = {
+							'value_id': value_id,
+							'entity_id': product_id,
+						}
+						self.import_data_connector(self.create_insert_query_connector('catalog_product_entity_media_gallery_value_to_entity', catalog_product_entity_media_gallery_value_to_entity_data))
+						check_img_valll = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+							'type': 'select',
+							'query': f"SElECT * FROM _DBPRF_catalog_product_entity_media_gallery_value WHERE value_id = {value_id} and entity_id = {product_id}"
+						})})
+						if check_img_valll['result'] == 'success' and not check_img_valll['data']:
+							catalog_product_entity_media_gallery_value_data = {
+								'value_id': value_id,
+								'store_id': 0,
+								'entity_id': product_id,
+								'label': convert['thumb_image'].get('label', ''),
+								'position': convert['thumb_image'].get('position', 1),
+								'disabled': 0,
+							}
+							self.import_data_connector(self.create_insert_query_connector('catalog_product_entity_media_gallery_value', catalog_product_entity_media_gallery_value_data))
+	data_attribute_insert = {
+		'image': image_name if image_name else None,
+		'small_image': image_name if image_name else None,
+		'thumbnail': image_name if image_name else None,
+	}
+	if image_name:
+		data_attribute_insert['image_label'] = convert.get('image', {}).get('label', None)
+	for key1, value1 in product_eav_attribute_data.items():
+		for key2, value2 in data_attribute_insert.items():
+			if key2 != key1:
+				continue
+			elif not value2:
+				continue
+			check_img_var = self.get_connector_data(self.get_connector_url('query'), {'query': json.dumps({
+				'type': 'select',
+				'query': f"SElECT * FROM _DBPRF_catalog_product_entity_{value1['backend_type']} WHERE attribute_id = {value1['attribute_id']} and entity_id = {product_id} and value = {value2}"
+			})})
+			if check_img_var['result'] == 'success' and check_img_var['data']:
+				continue
+			product_attr_data = {
+				'attribute_id': value1['attribute_id'],
+				'store_id': 0,
+				'entity_id': product_id,
+				'value': value2,
+			}
+			self.import_data_connector(self.create_insert_query_connector('catalog_product_entity_' + value1['backend_type'], product_attr_data))
