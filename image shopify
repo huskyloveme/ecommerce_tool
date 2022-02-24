@@ -1,0 +1,21 @@
+# create images
+
+data_image = {
+  'image': {
+    "id": products_page['product']['images'][0]['id'],
+    'variant_ids': list_main
+  }
+}
+res = self.api('products/' + to_str(product_id) + '/images/' + to_str(products_page['product']['images'][0]['id']) + '.json', data_image, 'Put')
+self.log(res,'res')
+
+
+# create image to variant
+data_image = {
+  "image": {
+    "src": "https://cdn11.bigcommerce.com/s-cfdb8/images/stencil/1280x1280/optionset_rule_images/45_source.jpg",
+    "variant_ids": list_318
+  }
+}
+res = self.api('products/' + to_str(product_id) + '/images.json', data_image, 'Post')
+
