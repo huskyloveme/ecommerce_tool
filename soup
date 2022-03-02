@@ -1,10 +1,19 @@
-		from bs4 import BeautifulSoup
-		soup = BeautifulSoup(res.text, 'lxml')
-		raw_content_tag = soup.find("div", {"class": "elementor-section-wrap"})
-		content = ''
-		if raw_content_tag:
-			content_tag = raw_content_tag.contents[0]
-			content = to_str(content_tag)
-		else:
-			content = blog['post_content']
-		blog_data['content'] = content.replace('data-src', 'src')
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(res.text, 'lxml')
+raw_content_tag = soup.find("div", {"class": "elementor-section-wrap"})
+content = ''
+if raw_content_tag:
+	content_tag = raw_content_tag.contents[0]
+	content = to_str(content_tag)
+else:
+	content = blog['post_content']
+blog_data['content'] = content.replace('data-src', 'src')
+		
+		
+		
+from bs4 import BeautifulSoup
+import request
+res = requests.get("https://www.vafoodie.com/episodes/bean-to-bar-wild-blue-chocolate-with-mike-sever")
+soup = BeautifulSoup(res.text)
+raw_content_tag = soup.find("span", {"class": "author"})
+print(raw_content_tag)
