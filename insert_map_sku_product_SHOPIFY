@@ -1,0 +1,18 @@
+		tmp = 415
+		id_since = 0
+		while to_decimal(tmp) > 0:
+			products = self.api('products.json?since_id=' + to_str(id_since) + '&limit=200')
+			products_page = json_decode(products)
+			for pro in products_page['products']:
+				# self.log(to_str(pro['id']) + '     ' + to_str(tmp),'list_pro')
+				id_since = to_str(pro['id'])
+				if pro.get('variants'):
+					for variant in pro['variants']:
+						pro_id = variant['product_id']
+						vari_id = variant['id']
+						sku = variant['sku']
+						self.insert_map('product_sku', pro_id, vari_id, sku, None)
+
+
+				tmp -= 1
+		return True
