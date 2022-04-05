@@ -1,4 +1,8 @@
 query_mark = "SELECT * FROM " + self.get_table_name('sales_order_grid') + " where entity_id = '" + to_str(order_id) + "'"
+data_mark = self.select_raw(query_mark)
+
+order_grid_data_mark = data_mark['data'][0]
+
 
 order_id = self.get_map_field_by_src(self.TYPE_ORDER, convert['id'], convert['code'])
 if order_id:
