@@ -16,3 +16,22 @@
 
 				tmp -= 1
 		return True
+		
+		
+		
+		order_items = list()
+		for row in convert['items']:
+			product_id = None
+			variant_id = None
+			new_sku = None
+			if row['product'].get('sku'):
+				new_sku = row['product'].get('sku')
+				mark_code_src = to_str(row['product']['sku'])
+				mark_code = list_checK_sku.get(mark_code_src)
+				if mark_code:
+					new_sku = mark_code
+					data_map = self.select_map(self._migration_id, 'product_sku', code_src = mark_code)
+					# self.log(data_map, 'data_map')
+					if data_map:
+						product_id = data_map.get('id_src')
+						variant_id = data_map.get('id_desc')
