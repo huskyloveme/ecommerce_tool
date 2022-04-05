@@ -1,0 +1,6 @@
+query_mark = "SELECT * FROM " + self.get_table_name('sales_order_grid') + " where entity_id = '" + to_str(order_id) + "'"
+
+order_id = self.get_map_field_by_src(self.TYPE_ORDER, convert['id'], convert['code'])
+if order_id:
+self.api('orders/'+to_str(order_id)+'.json',None,'DELETE')
+self.select_raw("DELETE FROM migration_map WHERE type = 'order' AND id_src = "+to_str(convert['id']))
