@@ -1,16 +1,20 @@
-			qty = convert['qty']
 
-			id_desc = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'])
-			location = self.api('locations.json')
-			location = json_decode(location)
-			location_id = location['locations'][0]['id']
-			if id_desc and location_id:
-				get_product = self.api('products/' + to_str(id_desc) + '.json')
+		product_id = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'])
+
+		if not product_id:
+			return True
+		# self.log(convert,'convert_pro')
+
+		if convert['type'] != 'configurable':
+			qty = convert['qty']
+			location_id = self.get_location_id()
+			if location_id:
+				get_product = self.api('products/' + to_str(product_id) + '.json')
 				if not get_product:
 					return response_error(self.console_error("Could not get data from Shopify"))
 				product_page = json_decode(get_product)
 				if not product_page:
-					self.log("Can't get collects data, id_src = " + to_str(id_desc), 'get_main')
+					self.log("Can't get collects data, id_src = " + to_str(product_id), 'get_main')
 					return response_error()
 				product_data = product_page.get('product')
 
@@ -18,6 +22,28 @@
 					post_data = {
 						"inventory_item_id": vari['inventory_item_id'],
 						"location_id": location_id,
-						"available": qty
+						"available": to_int(qty)
 					}
 					update_qty = self.api('inventory_levels/set.json', post_data, 'POST')
+
+		else:
+			for child in convert['children']:
+				child_id = self.get_map_field_by_src(self.TYPE_CHILD, child['id'])
+				if child_id:
+					qty = child['qty']
+					child_data = self.api(f"variants/{child_id}.json", 'get')
+					if not child_data:
+						continue
+					child_data = json_decode(child_data)
+					location_id = self.get_location_id()
+					if location_id:
+						inventory_post = {
+							'location_id': location_id,
+							'inventory_item_id': child_data['variant']['inventory_item_id'],
+							'available': to_int(qty),
+						}
+						inventory = self.api('inventory_levels/set.json', inventory_post, 'post')
+						mess = f"{'updated' if inventory else 'error update'} product: {product_id} - child id: {child_id} - inventory id: {child_data['variant']['inventory_item_id']} - qty: {qty}"
+						self.log(mess, 'update_qty')
+
+		return True
