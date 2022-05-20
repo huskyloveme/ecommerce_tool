@@ -1,6 +1,14 @@
-        if convert['tier'] and len(convert['tier']) > 0:
+id_product = self.get_map_field_by_src(self.TYPE_PRODUCT, convert['id'], convert['code'],lang=self._notice['target']['language_default'])
+
+        if convert['tier'] and len(convert['tier']) > 0 and convert['type'] != self.PRODUCT_CONFIG:
             tier_price_data_product = dict()
             for tmp in convert['tier']:
                 tier_price_data_product[int(tmp['count'])] = to_str(tmp['price'])
             tier_price_child_product = php_serialize(tier_price_data_product)
-            self.log(tier_price_child_product,'tier_price_child_product')
+
+            data_put = {
+                'post_id': id_product,
+                'meta_key': '_fixed_price_rules',
+                'meta_value': tier_price_child_product
+            }
+            self.import_data_connector(self.create_insert_query_connector('postmeta',data_put))
